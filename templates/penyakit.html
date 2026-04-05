@@ -1,0 +1,80 @@
+{% extends "layout.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-plus-circle"></i> Input Penyakit</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label">Kode Penyakit</label>
+            <input
+              name="kode"
+              class="form-control"
+              placeholder="Misal: P01"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Nama Penyakit</label>
+            <input
+              name="nama"
+              class="form-control"
+              placeholder="Masukkan nama penyakit"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Pilih Gejala</label>
+
+            <select
+              name="gejala"
+              class="selectpicker form-control"
+              multiple
+              data-live-search="true"
+              title="Pilih gejala terkait"
+            >
+              {% for g in gejala %}
+              <option value="{{ g.kode }}">{{ g.kode }} - {{ g.nama }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <button class="btn btn-success w-100">
+            <i class="bi bi-check-lg"></i> Simpan
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+    <h4 class="mb-3">Daftar Penyakit</h4>
+
+    <div class="card shadow-sm">
+        <table class="table table-striped mb-0">
+            <thead>
+                <tr>
+                    <th>Kode</th>
+                    <th>Nama Penyakit</th>
+                    <th>Gejala</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for p in penyakit %}
+                <tr>
+                    <td>{{ p.kode }}</td>
+                    <td>{{ p.nama }}</td>
+                    <td>{{ p.gejala | join(', ') }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% endblock %}
