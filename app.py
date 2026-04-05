@@ -93,7 +93,9 @@ def cbr_sorgenfrei_weighted():
 
     for g in gejala_docs:
         d = g.to_dict()
-        gejala_map[d["kode"]] = float(d.get("bobot", "0"))  # pyright: ignore
+        gejala_map[d["kode"]] = float(
+            d.get("bobot", "0").replace(",", ".")
+        )  # pyright: ignore
 
     A = set(gejala_input)
 
