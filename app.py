@@ -8,139 +8,174 @@ load_dotenv()
 
 app = Flask(__name__)
 
-# Init Firebase
+# Firebase init
 cred = credentials.Certificate(
     {
         "type": "service_account",
         "project_id": os.environ["FIREBASE_PROJECT_ID"],
         "private_key_id": os.environ["FIREBASE_PRIVATE_KEY_ID"],
-        "private_key": os.environ["FIREBASE_PRIVATE_KEY"],
+        "private_key": os.environ["FIREBASE_PRIVATE_KEY"].replace("\\n", "\n"),
         "client_email": os.environ["FIREBASE_CLIENT_EMAIL"],
         "client_id": os.environ["FIREBASE_CLIENT_ID"],
         "auth_uri": "https://accounts.google.com/o/oauth2/auth",
         "token_uri": "https://oauth2.googleapis.com/token",
-        "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
         "client_x509_cert_url": os.environ["FIREBASE_CLIENT_CERT"],
-        "universe_domain": "googleapis.com",
     }
 )
 
 firebase_admin.initialize_app(cred)
-
 db = firestore.client()
 
 
 # ===========================
-# ROUTE GEJALA
+# GEJALA
 # ===========================
 @app.route("/", methods=["GET", "POST"])
 def gejala():
     if request.method == "POST":
-        kode = request.form["kode"]
-        nama = request.form["nama"]
-        bobot = request.form["bobot"]  # string sesuai permintaan
-
-        db.collection("gejala").add({"kode": kode, "nama": nama, "bobot": bobot})
+        db.collection("gejala").add(
+            {
+                "kode": request.form["kode"],
+                "nama": request.form["nama"],
+                "bobot": float(request.form["bobot"].replace(",", ".")),
+            }
+        )
         return redirect("/")
 
-    all_gejala = db.collection("gejala").get()
-    gejala_list = [g.to_dict() for g in all_gejala]
+    data = db.collection("gejala").get()
+    gejala = [{"id": g.id, **g.to_dict()} for g in data]
 
-    return render_template("gejala.html", gejala=gejala_list)
+    return render_template("gejala.html", gejala=gejala)
+
+
+@app.route("/gejala/edit/<id>", methods=["GET", "POST"])
+def edit_gejala(id):
+    ref = db.collection("gejala").document(id)
+
+    if request.method == "POST":
+        ref.update(
+            {
+                "kode": request.form["kode"],
+                "nama": request.form["nama"],
+                "bobot": float(request.form["bobot"].replace(",", ".")),
+            }
+        )
+        return redirect("/")
+
+    data = ref.get().to_dict()
+    return render_template("edit_gejala.html", gejala=data, id=id)
+
+
+@app.route("/gejala/delete/<id>")
+def delete_gejala(id):
+    db.collection("gejala").document(id).delete()
+    return redirect("/")
 
 
 # ===========================
-# ROUTE PENYAKIT
+# PENYAKIT
 # ===========================
 @app.route("/penyakit", methods=["GET", "POST"])
 def penyakit():
     if request.method == "POST":
-        kode = request.form["kode"]
-        nama = request.form["nama"]
-        gejala = request.form.getlist("gejala")  # multi select
-
         db.collection("penyakit").add(
-            {"kode": kode, "nama": nama, "gejala": gejala}  # list
+            {
+                "kode": request.form["kode"],
+                "nama": request.form["nama"],
+                "gejala": request.form.getlist("gejala"),
+                "pencegahan": request.form["pencegahan"],
+            }
         )
         return redirect("/penyakit")
 
-    all_gejala = db.collection("gejala").get()
-    gejala_list = [{"id": g.id, **g.to_dict()} for g in all_gejala]  # pyright: ignore
-    gejala_map = {
-        g.to_dict()["kode"]: g.to_dict()["nama"] for g in all_gejala
-    }  # pyright: ignore
-    all_penyakit = db.collection("penyakit").get()
+    gejala_docs = db.collection("gejala").get()
+    gejala_list = [{"id": g.id, **g.to_dict()} for g in gejala_docs]
+    gejala_map = {g.to_dict()["kode"]: g.to_dict()["nama"] for g in gejala_docs}
+
+    penyakit_docs = db.collection("penyakit").get()
     penyakit = []
-    for p in all_penyakit:
+
+    for p in penyakit_docs:
         data = p.to_dict()
-        kode_list = data.get("gejala", [])  # pyright: ignore
-        nama_gejala = [gejala_map.get(k, "Unknown") for k in kode_list]
-        penyakit.append({**data, "gejala": nama_gejala})  # pyright: ignore
+        kode_list = data.get("gejala", [])
+        nama_gejala = [gejala_map.get(k, "-") for k in kode_list]
+
+        penyakit.append(
+            {
+                "id": p.id,
+                **data,
+                "gejala": nama_gejala,
+                "pencegahan": data.get("pencegahan", "-"),
+            }
+        )
 
     return render_template("penyakit.html", gejala=gejala_list, penyakit=penyakit)
 
 
+@app.route("/penyakit/edit/<id>", methods=["GET", "POST"])
+def edit_penyakit(id):
+    ref = db.collection("penyakit").document(id)
+
+    if request.method == "POST":
+        ref.update(
+            {
+                "kode": request.form["kode"],
+                "nama": request.form["nama"],
+                "gejala": request.form.getlist("gejala"),
+                "pencegahan": request.form["pencegahan"],
+            }
+        )
+        return redirect("/penyakit")
+
+    penyakit = ref.get().to_dict()
+    gejala = db.collection("gejala").get()
+    gejala_list = [{"id": g.id, **g.to_dict()} for g in gejala]
+
+    return render_template(
+        "edit_penyakit.html", penyakit=penyakit, gejala=gejala_list, id=id
+    )
+
+
+@app.route("/penyakit/delete/<id>")
+def delete_penyakit(id):
+    db.collection("penyakit").document(id).delete()
+    return redirect("/penyakit")
+
+
+# ===========================
+# CBR
+# ===========================
 @app.route("/api/cbr", methods=["POST"])
-def cbr_sorgenfrei_weighted():
+def cbr():
     data = request.json
-    gejala_input = data.get("gejala", [])  # pyright: ignore
-    if not gejala_input:
-        return jsonify({"error": "gejala harus diisi"}), 400
+    A = set(data.get("gejala", []))
 
-    # --- Load all gejala with weight ---
     gejala_docs = db.collection("gejala").get()
-    gejala_map = {}  # kode → bobot float
+    gejala_map = {
+        g.to_dict()["kode"]: float(g.to_dict().get("bobot", 0)) for g in gejala_docs
+    }
 
-    for g in gejala_docs:
-        d = g.to_dict()
-        gejala_map[d["kode"]] = float(
-            d.get("bobot", "0").replace(",", ".")
-        )  # pyright: ignore
-
-    A = set(gejala_input)
-
-    # --- Ambil penyakit ---
     penyakit_docs = db.collection("penyakit").get()
-
     hasil = []
 
     for p in penyakit_docs:
         p_data = p.to_dict()
-        B = set(p_data.get("gejala", []))  # pyright: ignore
+        B = set(p_data.get("gejala", []))
 
-        # ==== Hitung bobot ====
-        # cocok
         a = sum(gejala_map.get(g, 0) for g in (A & B))
-
-        # input tidak ada di penyakit
         b = sum(gejala_map.get(g, 0) for g in (A - B))
-
-        # penyakit tidak dipilih user
         c = sum(gejala_map.get(g, 0) for g in (B - A))
 
-        if a == 0:
-            so = 0.0
-        else:
-            so = (a * a) / ((a + b) * (a + c))
+        so = 0 if a == 0 else (a * a) / ((a + b) * (a + c))
 
         hasil.append(
             {
-                "kode": p_data.get("kode"),  # pyright: ignore
-                "nama": p_data.get("nama"),  # pyright: ignore
+                "nama": p_data.get("nama"),
                 "similarity": round(so, 4),
-                "a_cocok_weight": round(a, 4),
-                "b_input_not_in_penyakit": round(b, 4),
-                "c_penyakit_not_in_input": round(c, 4),
-                "gejala_penyakit": list(B),
+                "pencegahan": p_data.get("pencegahan", "-"),
             }
         )
 
-    hasil_sorted = sorted(hasil, key=lambda x: x["similarity"], reverse=True)
+    hasil.sort(key=lambda x: x["similarity"], reverse=True)
 
-    return jsonify(
-        {
-            "input_gejala": gejala_input,
-            "hasil": hasil_sorted,
-            "diagnosis": hasil_sorted[0] if hasil_sorted else None,
-        }
-    )
+    return jsonify({"hasil": hasil, "diagnosis": hasil[0] if hasil else None})

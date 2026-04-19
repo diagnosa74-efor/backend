@@ -1,0 +1,64 @@
+{% extends "layout.html" %} {% block content %}
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-success text-white">
+        <h5 class="mb-0"><i class="bi bi-pencil"></i> Edit Penyakit</h5>
+      </div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label class="form-label">Kode Penyakit</label>
+            <input
+              name="kode"
+              class="form-control"
+              placeholder="Misal: P01"
+							value="{{ penyakit.kode }}"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Nama Penyakit</label>
+            <input
+              name="nama"
+              class="form-control"
+              placeholder="Masukkan nama penyakit"
+							value="{{ penyakit.nama }}"
+              required
+            />
+          </div>
+
+          <div class="mb-3">
+            <label class="form-label">Pilih Gejala</label>
+
+            <select
+              name="gejala"
+              class="selectpicker form-control"
+              multiple
+              data-live-search="true"
+              title="Pilih gejala terkait"
+            >
+              {% for g in gejala %}
+              <option value="{{ g.kode }}"
+							{% if g.kode in penyakit.gejala %}selected{% endif %}>
+							{{ g.kode }} - {{ g.nama }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+					<div class="mb-3">
+						 <label class="form-label">Pencegahan </label>
+						 <textarea class="form-control" name="pencegahan" placeholder="Pencegahan">{{ penyakit.pencegahan }}</textarea>
+					</div>
+
+          <button class="btn btn-success w-100">
+            <i class="bi bi-check-lg"></i> Edit
+          </button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+{% endblock %}

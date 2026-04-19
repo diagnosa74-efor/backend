@@ -43,6 +43,11 @@
             </select>
           </div>
 
+					<div class="mb-3">
+						 <label class="form-label">Pencegahan</label>
+						  <textarea class="form-control" name="pencegahan" placeholder="Pencegahan"></textarea>
+					</div>
+
           <button class="btn btn-success w-100">
             <i class="bi bi-check-lg"></i> Simpan
           </button>
@@ -60,6 +65,8 @@
                     <th>Kode</th>
                     <th>Nama Penyakit</th>
                     <th>Gejala</th>
+                    <th>Pencegahan</th>
+                    <th>Aksi</th>
                 </tr>
             </thead>
             <tbody>
@@ -68,6 +75,15 @@
                     <td>{{ p.kode }}</td>
                     <td>{{ p.nama }}</td>
                     <td>{{ p.gejala | join(', ') }}</td>
+										<td>{{ p.pencegahan }}</td>
+										<td>
+											<div class="d-flex">
+												<a class="me-2 btn btn-primary" href="/penyakit/edit/{{ p.id }}">Edit</a>
+												<form action="/penyakit/delete/{{ p.id }}">
+													<button class="btn btn-danger" onclick="return confirm('Apakah yakin untuk menghapus?')">Hapus</button>
+												</form>
+											</div>
+										</td>
                 </tr>
                 {% endfor %}
             </tbody>
